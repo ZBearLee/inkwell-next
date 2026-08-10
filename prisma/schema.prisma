@@ -1,0 +1,177 @@
+// Inkwell-next — Prisma schema
+// 技术博客 CMS 数据模型定义
+// 设计要点：
+// 1. 索引策略：外键字段加 @@index 加速查询；slug/username 用 @unique 保证唯一且做查询键
+// 2. 级联策略：删文章时级联删除其评论/点赞/收藏；删用户/分类用 Restrict 禁止（保留内容）
+// 3. 联合唯一约束：Like/Bookmark 用 @@unique(userId, postId) 防止重复点赞/收藏
+// 4. Comment 自引用 parentId → Comment.id，支持楼中楼回复
+// 5. id 用 cuid，分布式友好，不暴露自增序号
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================== 用户角色枚举 =====================
+enum Role {
+  USER      // 注册用户
+  AUTHOR    // 作者（可发文）
+  ADMIN     // 管理员
+}
+
+// ===================== 用户 =====================
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  username      String         @unique
+  name          String?
+  passwordHash  String?        // OAuth 用户可为空
+  image         String?        // 头像 URL
+  bio           String?        // 个人简介
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  bookmarks     Bookmark[]
+
+  @@index([role])
+}
+
+// ===================== 分类 =====================
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  posts       Post[]
+
+  @@index([slug])
+}
+
+// ===================== 标签 =====================
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  posts     PostTag[]
+
+  @@index([slug])
+}
+
+// ===================== 文章状态枚举 =====================
+enum PostStatus {
+  DRAFT      // 草稿
+  PUBLISHED  // 已发布
+}
+
+// ===================== 文章 =====================
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  excerpt     String     // 摘要（列表展示）
+  content     String     // Markdown 原文
+  coverImage  String?    // 封面图 URL
+  readTime    Int        @default(1)  // 阅读时长（分钟）
+  views       Int        @default(0)  // 阅读量
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?  // 发布时间（DRAFT 时为 null）
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  tags        PostTag[]
+  comments    Comment[]
+  likes       Like[]
+  bookmarks   Bookmark[]
+
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([publishedAt])
+}
+
+// ===================== 文章-标签（多对多关系表）=====================
+// 显式定义关系表，便于加索引和未来扩展字段
+model PostTag {
+  postId String
+  tagId  String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+// ===================== 评论（自引用支持楼中楼）=====================
+model Comment {
+  id        String    @id @default(cuid())
+  content   String    // Markdown 原文
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  parentId  String?   // 自引用：父评论 id，顶级评论为 null
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+// ===================== 点赞 =====================
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])  // 防止同一用户对同一文章重复点赞
+  @@index([postId])
+}
+
+// ===================== 收藏 =====================
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])  // 防止重复收藏
+  @@index([userId])
+}
+
+// ===================== 邮件订阅 =====================
+model Subscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
