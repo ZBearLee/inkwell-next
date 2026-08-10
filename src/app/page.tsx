@@ -1,69 +1,102 @@
-import Image from "next/image";
+// src/app/page.tsx
+// 博客首页（Server Component — SSR）
+//
+// 渲染策略：SSR（每次请求都查数据库）
+// 为什么用 SSR 而非 SSG？
+// → 博客文章频繁更新，SSR 保证用户每次访问都看到最新内容
+// → SSG 需要重新构建才能更新，不适合频繁变化的内容
+//
+// Streaming + Suspense：
+// → 主内容（最新文章）先渲染直出
+// → 侧边栏（分类/标签聚合查询）用 <Suspense> 包裹，异步流式加载
+// → 用户无需等待侧边栏查询完成就能看到文章列表
 
-export default function Home() {
+import Link from "next/link";
+import { Suspense } from "react";
+import { ArrowRight, BookOpen, Rss } from "lucide-react";
+import { getLatestPosts } from "@/lib/post";
+import { PostCard } from "@/components/post-card";
+import { Sidebar, SidebarSkeleton } from "@/components/sidebar";
+
+export default async function Home() {
+  // 查询最新文章（首页展示 6 篇）
+  const posts = await getLatestPosts(6);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <>
+      {/* ===== Hero 区 ===== */}
+      <section className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mx-auto max-w-6xl px-4 py-20 text-center">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-5xl">
+            探索 <span className="text-blue-600">Next.js</span> 的全栈实践
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
+            从 React Server Components 到 Server Actions，从 SSG 到 ISR ——
+            一个用 Next.js 16 构建的技术博客 CMS，深度实践现代 Web 开发。
           </p>
+          <div className="flex items-center justify-center gap-4">
+            <Link
+              href="/posts"
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              <BookOpen className="h-4 w-4" />
+              浏览文章
+            </Link>
+            <Link
+              href="/rss"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Rss className="h-4 w-4" />
+              RSS 订阅
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* ===== 主体内容：最新文章 + 侧边栏 ===== */}
+      <div className="mx-auto max-w-6xl px-4 py-12">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
+          {/* 最新文章列表 */}
+          <div>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">最新文章</h2>
+              <Link
+                href="/posts"
+                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              >
+                查看全部
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {posts.length > 0 ? (
+              <div className="space-y-6">
+                {/* 第一篇用 featured 样式（大卡片） */}
+                {posts[0] && <PostCard post={posts[0]} featured />}
+                {/* 其余用普通卡片，双列网格 */}
+                {posts.slice(1).length > 0 && (
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {posts.slice(1).map((post) => (
+                      <PostCard key={post.id} post={post} showCover={false} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center text-zinc-500 dark:border-zinc-700">
+                暂无文章，敬请期待。
+              </div>
+            )}
+          </div>
+
+          {/* 侧边栏：用 Suspense 包裹，实现流式渲染 */}
+          <div className="lg:sticky lg:top-20 lg:h-fit">
+            <Suspense fallback={<SidebarSkeleton />}>
+              <Sidebar />
+            </Suspense>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

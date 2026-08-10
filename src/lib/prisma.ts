@@ -4,7 +4,7 @@
 // 直接 new PrismaClient() 会导致连接数飙升，最终耗尽数据库连接。
 // 通过 globalThis 缓存单例，保证整个进程只创建一个 client。
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

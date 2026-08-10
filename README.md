@@ -2,10 +2,6 @@
 
 基于 Next.js 16 构建的技术博客 CMS，探索 React Server Components、多种渲染策略与全栈实践。
 
-## 当前进度
-
-- [x] 模块 1：项目脚手架 + 数据建模
-
 ## 技术栈
 
 - Next.js 16 (App Router) + React 19

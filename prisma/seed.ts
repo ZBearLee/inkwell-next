@@ -5,7 +5,7 @@
 // 运行：pnpm db:seed
 // 幂等性：用 upsert 按唯一键写入，重复执行不会报错也不会产生重复数据
 
-import { PrismaClient, Role, PostStatus } from "@prisma/client";
+import { PrismaClient, Role, PostStatus } from "../src/generated/prisma";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
