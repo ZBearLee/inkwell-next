@@ -392,3 +392,128 @@ export async function searchSuggestions(
 
   return posts;
 }
+
+// ==================== 评论相关 ====================
+
+import type { Comment } from "@/generated/prisma";
+
+/**
+ * 评论类型（含作者和回复）
+ *
+ * 为什么用 CommentWithRelations 而非 Prisma.CommentGetPayload?
+ * → 手写类型更直观，便于理解关联结构
+ * → 楼中楼回复用 replies 递归嵌套，类型自引用
+ */
+export type CommentWithRelations = Comment & {
+  author: Pick<User, "id" | "name" | "username" | "image">;
+  replies?: CommentWithRelations[];  // 自引用：子评论（楼中楼）
+  _count?: { replies: number };      // 子评论数量（用于"展开 N 条回复"）
+};
+
+/**
+ * 获取文章的评论列表（含楼中楼回复）
+ *
+ * 查询策略：
+ * 1. 只查顶级评论（parentId = null）
+ * 2. 每个顶级评论 include 其 replies（最多 2 级，避免无限嵌套）
+ * 3. 按 createdAt 升序（最早的在前，符合评论阅读习惯）
+ *
+ * 为什么不用递归查询所有层级?
+ * → 楼中楼通常最多 2 级，避免无限嵌套导致 UI 复杂
+ * → 2 级查询性能好，一次 SQL 就能拿到顶级 + 子评论
+ *
+ * @param postSlug 文章 slug
+ */
+export async function getComments(postSlug: string): Promise<CommentWithRelations[]> {
+  // 先查文章 id（评论通过 postId 关联）
+  const post = await prisma.post.findUnique({
+    where: { slug: postSlug },
+    select: { id: true },
+  });
+
+  if (!post) return [];
+
+  // 查询顶级评论 + include 子评论
+  return prisma.comment.findMany({
+    where: {
+      postId: post.id,
+      parentId: null,  // 只查顶级评论
+    },
+    include: {
+      author: {
+        select: { id: true, name: true, username: true, image: true },
+      },
+      replies: {
+        include: {
+          author: {
+            select: { id: true, name: true, username: true, image: true },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  }) as Promise<CommentWithRelations[]>;
+}
+
+/**
+ * 获取评论总数（用于文章详情页显示"N 条评论"）
+ */
+export async function getCommentCount(postSlug: string): Promise<number> {
+  const post = await prisma.post.findUnique({
+    where: { slug: postSlug },
+    select: { id: true },
+  });
+
+  if (!post) return 0;
+
+  return prisma.comment.count({
+    where: { postId: post.id },
+  });
+}
+
+/**
+ * 创建评论
+ *
+ * @param postId 文章 id
+ * @param authorId 作者 id
+ * @param content 评论内容
+ * @param parentId 父评论 id（可选，用于回复）
+ */
+export async function createComment(
+  postId: string,
+  authorId: string,
+  content: string,
+  parentId?: string,
+): Promise<Comment> {
+  return prisma.comment.create({
+    data: {
+      postId,
+      authorId,
+      content,
+      parentId: parentId || null,
+    },
+  });
+}
+
+/**
+ * 删除评论
+ * 级联策略：schema 中定义了 onDelete: Cascade，删父评论会自动删子评论
+ */
+export async function deleteComment(commentId: string): Promise<void> {
+  await prisma.comment.delete({
+    where: { id: commentId },
+  });
+}
+
+/**
+ * 根据 id 查评论（用于权限校验：判断是否本人/管理员）
+ */
+export async function getCommentById(
+  commentId: string,
+): Promise<{ id: string; authorId: string; postId: string } | null> {
+  return prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { id: true, authorId: true, postId: true },
+  });
+}

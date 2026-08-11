@@ -30,6 +30,7 @@ import { renderMarkdown, extractToc } from "@/lib/markdown";
 import { PostCard } from "@/components/post-card";
 import { Toc } from "@/components/toc";
 import { CopyButton } from "@/components/copy-button";
+import { CommentSection } from "@/components/comments/comment-section";
 import { formatDate } from "@/lib/utils";
 
 // ==================== ISR 配置 ====================
@@ -247,6 +248,12 @@ export default async function PostDetailPage({ params }: PageProps) {
               </div>
             </section>
           )}
+
+          {/* ==================== 评论区 ==================== */}
+          {/* Server Component，跟随页面 ISR 缓存（revalidate = 60）
+              评论提交/删除时，Server Action 内调用 revalidatePath 失效缓存，
+              新评论会在下次请求时立即显示 */}
+          <CommentSection postSlug={post.slug} postId={post.id} />
         </article>
 
         {/* ==================== 侧边栏：TOC ==================== */}

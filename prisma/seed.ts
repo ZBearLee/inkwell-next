@@ -299,6 +299,68 @@ vercel --prod
 
   console.log(`  ✓ 文章: 4 篇已发布, 1 篇草稿`);
 
+  // ---------- 5. 评论（演示楼中楼）----------
+  // 给第一篇文章加 2 条顶级评论 + 1 条回复，第二篇加 1 条顶级评论 + 1 条回复
+  const publishedPosts = await prisma.post.findMany({
+    where: { status: PostStatus.PUBLISHED },
+    select: { id: true, slug: true },
+    take: 2,
+    orderBy: { publishedAt: "desc" },
+  });
+
+  if (publishedPosts.length > 0) {
+    // 清理旧评论（确保幂等：重跑 seed 不产生重复）
+    await prisma.comment.deleteMany({
+      where: { postId: { in: publishedPosts.map((p) => p.id) } },
+    });
+
+    const firstPost = publishedPosts[0];
+    const secondPost = publishedPosts[1];
+
+    // 第一篇：2 条顶级 + 1 条回复
+    const c1 = await prisma.comment.create({
+      data: {
+        postId: firstPost.id,
+        authorId: admin.id,
+        content: "讲得很清晰，App Router 的四种渲染策略对比那张表太实用了！",
+      },
+    });
+    await prisma.comment.create({
+      data: {
+        postId: firstPost.id,
+        authorId: author.id,
+        content: "感谢分享，SSG + ISR 的组合确实是博客类项目的最佳实践。",
+        parentId: c1.id, // 楼中楼回复
+      },
+    });
+    await prisma.comment.create({
+      data: {
+        postId: firstPost.id,
+        authorId: author.id,
+        content: "期待下一篇讲 Streaming + Suspense 的实战。",
+      },
+    });
+
+    // 第二篇：1 条顶级 + 1 条回复
+    const c2 = await prisma.comment.create({
+      data: {
+        postId: secondPost.id,
+        authorId: admin.id,
+        content: "N+1 那段讲得不错，include 和 select 的区别可以再展开讲讲。",
+      },
+    });
+    await prisma.comment.create({
+      data: {
+        postId: secondPost.id,
+        authorId: author.id,
+        content: "已记下，下次专门写一篇讲 include vs select 的取舍。",
+        parentId: c2.id,
+      },
+    });
+
+    console.log(`  ✓ 评论: 3 条顶级 + 2 条回复（楼中楼演示）`);
+  }
+
   console.log("🎉 种子数据写入完成！");
   console.log("   作者账号: author@inkwell.dev / author123");
   console.log("   管理员账号: admin@inkwell.dev / admin123");
