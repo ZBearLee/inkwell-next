@@ -517,3 +517,145 @@ export async function getCommentById(
     select: { id: true, authorId: true, postId: true },
   });
 }
+
+// ==================== 作者后台相关 ====================
+
+/**
+ * 作者管理后台用的文章列表类型
+ * 比公开列表多 content 摘要信息，但不需要完整内容
+ */
+export type MyPostItem = Pick<
+  Post,
+  "id" | "title" | "slug" | "excerpt" | "status" | "views" | "publishedAt" | "createdAt" | "updatedAt"
+> & {
+  category: Pick<Category, "id" | "name" | "slug">;
+  _count: {
+    comments: number;
+    likes: number;
+    bookmarks: number;
+  };
+};
+
+/**
+ * 查询某用户的全部文章（含草稿，用于作者后台）
+ *
+ * 和 getPosts 的区别：
+ *   1. 包含 DRAFT 状态（草稿也要管理）
+ *   2. 按 authorId 过滤（只看自己的）
+ *   3. 按 updatedAt 倒序（最近编辑的在前）
+ *
+ * @param authorId 作者 id
+ */
+export async function getMyPosts(authorId: string): Promise<MyPostItem[]> {
+  const posts = await prisma.post.findMany({
+    where: { authorId },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      status: true,
+      views: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      category: { select: { id: true, name: true, slug: true } },
+      _count: {
+        select: {
+          comments: true,
+          likes: true,
+          bookmarks: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return posts as MyPostItem[];
+}
+
+/**
+ * 编辑文章时用的文章详情类型
+ * 含完整 content + 所有元信息，但不含 _count（编辑不需要统计）
+ */
+export type PostForEdit = Pick<
+  Post,
+  "id" | "title" | "slug" | "excerpt" | "content" | "coverImage" | "status" | "categoryId" | "authorId"
+> & {
+  tags: { tag: Pick<Tag, "id" | "name" | "slug"> }[];
+};
+
+/**
+ * 按 id 查询文章（用于编辑页）
+ * 含草稿状态的文章（作者可以编辑自己的草稿）
+ *
+ * 安全要点：
+ *   这个函数只负责查数据，不做权限校验
+ *   权限校验在 Server Action 里做（检查 authorId 是否匹配）
+ *
+ * @param postId 文章 id
+ */
+export async function getPostForEdit(postId: string): Promise<PostForEdit | null> {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      content: true,
+      coverImage: true,
+      status: true,
+      categoryId: true,
+      authorId: true,
+      tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+    },
+  });
+
+  return post as PostForEdit | null;
+}
+
+/**
+ * 查询所有分类（发文时选择用）
+ * 按名称排序，方便查找
+ */
+export async function getAllCategories() {
+  return prisma.category.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * 查询所有标签（发文时选择用）
+ * 按名称排序
+ */
+export async function getAllTags() {
+  return prisma.tag.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * 查询所有已存在的 slug（用于生成唯一 slug 时的去重）
+ */
+export async function getAllSlugs(): Promise<string[]> {
+  const posts = await prisma.post.findMany({
+    select: { slug: true },
+  });
+  return posts.map((p) => p.slug);
+}
+
+/**
+ * 计算阅读时长（分钟）
+ * 规则：中文按字数 / 300，英文按词数 / 200，取较大值
+ * 简单实现：按字符数 / 500 估算
+ *
+ * @param content Markdown 原文
+ */
+export function calculateReadTime(content: string): number {
+  const charCount = content.length;
+  const readTime = Math.ceil(charCount / 500);
+  return Math.max(1, readTime); // 至少 1 分钟
+}

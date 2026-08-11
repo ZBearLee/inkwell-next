@@ -25,7 +25,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
-import { registerAction, registerSchema } from "@/actions/auth";
+import { registerAction } from "@/actions/auth";
+import { registerSchema } from "@/lib/validations/auth";
 
 export default function RegisterPage() {
   const [error, setError] = useState("");

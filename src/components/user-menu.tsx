@@ -115,12 +115,12 @@ export function UserMenu({ user }: UserMenuProps) {
 
           {(user.role === "ADMIN" || user.role === "AUTHOR") && (
             <Link
-              href="/dashboard"
+              href="/dashboard/posts"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               <Settings className="h-4 w-4" />
-              后台管理
+              文章管理
             </Link>
           )}
 

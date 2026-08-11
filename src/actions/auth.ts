@@ -27,25 +27,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
+import { registerSchema } from "@/lib/validations/auth";
 
-// ==================== 注册 Schema（zod 校验）====================
-// 前后端共享：这里定义后，注册页表单也用同样的规则做客户端校验
-export const registerSchema = z.object({
-  username: z
-    .string()
-    .min(2, "用户名至少 2 个字符")
-    .max(20, "用户名最多 20 个字符")
-    .regex(/^[a-zA-Z0-9_-]+$/, "用户名只能包含字母、数字、下划线、连字符"),
-  email: z.string().email("邮箱格式不正确"),
-  password: z
-    .string()
-    .min(6, "密码至少 6 个字符")
-    .max(72, "密码最多 72 个字符（bcrypt 限制）"),
-});
+// registerSchema 从 lib/validations/auth.ts 导入（不能在 "use server" 文件里定义非函数导出）
 
 // ==================== 注册 Server Action ====================
 /**

@@ -26,19 +26,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-
-// ==================== 资料更新 Schema ====================
-// name：可选，最长 50 字符（显示名，可以是中文）
-// bio：可选，最长 200 字符（个人简介）
-// image：可选，必须是合法 URL（头像地址）
-export const updateProfileSchema = z.object({
-  name: z.string().max(50, "昵称最多 50 个字符").optional().nullable(),
-  bio: z.string().max(200, "简介最多 200 个字符").optional().nullable(),
-  image: z.string().url("头像必须是合法 URL").optional().nullable().or(z.literal("")),
-});
+import { updateProfileSchema } from "@/lib/validations/profile";
 
 // ==================== 更新个人资料 ====================
 /**
