@@ -141,3 +141,134 @@ export async function getTagBySlug(slug: string) {
     select: { id: true, name: true, slug: true },
   });
 }
+
+// ==================== 文章详情相关 ====================
+
+// 文章详情类型（含完整内容和关联数据）
+export type PostDetail = Post & {
+  author: Pick<User, "id" | "name" | "username" | "image">;
+  category: Pick<Category, "id" | "name" | "slug">;
+  tags: { tag: Pick<Tag, "id" | "name" | "slug"> }[];
+  _count: {
+    comments: number;
+    likes: number;
+    bookmarks: number;
+  };
+};
+
+/**
+ * 按 slug 查询文章详情（含完整 content）
+ * 只返回 PUBLISHED 状态的文章（草稿不对外展示）
+ *
+ * 用于：文章详情页、generateMetadata
+ */
+export async function getPostBySlug(slug: string): Promise<PostDetail | null> {
+  const post = await prisma.post.findFirst({
+    where: { slug, status: "PUBLISHED" },
+    include: {
+      author: { select: { id: true, name: true, username: true, image: true } },
+      category: { select: { id: true, name: true, slug: true } },
+      tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+      _count: {
+        select: {
+          comments: true,
+          likes: true,
+          bookmarks: true,
+        },
+      },
+    },
+  });
+
+  return post as PostDetail | null;
+}
+
+/**
+ * 查询所有已发布文章的 slug（用于 generateStaticParams）
+ * 构建时预生成所有文章页的静态 HTML
+ */
+export async function getAllPostSlugs(): Promise<{ slug: string }[]> {
+  const posts = await prisma.post.findMany({
+    where: { status: "PUBLISHED" },
+    select: { slug: true },
+  });
+  return posts;
+}
+
+/**
+ * 查询上一篇/下一篇文章（用于详情页底部导航）
+ * 上一篇：发布时间晚于当前文章，取最近的一篇
+ * 下一篇：发布时间早于当前文章，取最近的一篇
+ *
+ * 注意：返回的只有 slug 和 title，不需要完整内容
+ */
+export async function getPostNeighbors(publishedAt: Date) {
+  const [previous, next] = await Promise.all([
+    // 下一篇（更早发布的）
+    prisma.post.findFirst({
+      where: {
+        status: "PUBLISHED",
+        publishedAt: { lt: publishedAt },
+      },
+      select: { slug: true, title: true },
+      orderBy: { publishedAt: "desc" },
+    }),
+    // 上一篇（更晚发布的）
+    prisma.post.findFirst({
+      where: {
+        status: "PUBLISHED",
+        publishedAt: { gt: publishedAt },
+      },
+      select: { slug: true, title: true },
+      orderBy: { publishedAt: "asc" },
+    }),
+  ]);
+
+  // 命名说明：时间线上，更早的叫"上一篇"（older），更晚的叫"下一篇"（newer）
+  // 但博客习惯：列表按时间倒序，所以"下一篇"是更早的文章
+  return { next, previous };
+}
+
+/**
+ * 查询相关文章（同分类的其他文章，排除当前文章）
+ * 用于详情页底部"相关推荐"
+ *
+ * @param postId 当前文章 id
+ * @param categoryId 当前文章分类 id
+ * @param limit 返回数量
+ */
+export async function getRelatedPosts(
+  postId: string,
+  categoryId: string,
+  limit = 3,
+): Promise<PostWithRelations[]> {
+  const posts = await prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+      id: { not: postId },
+      category: { id: categoryId },
+    },
+    include: {
+      author: { select: { id: true, name: true, username: true } },
+      category: { select: { id: true, name: true, slug: true } },
+      tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+    },
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+  });
+
+  return posts as PostWithRelations[];
+}
+
+/**
+ * 增加文章阅读量
+ * 用 increment 操作，避免读-改-写的并发问题
+ *
+ * 注意：SSG 页面中调用此函数需用 after() 或单独接口，不能直接在渲染时调用
+ *       否则会导致缓存失效（每次渲染都 +1）
+ */
+export async function incrementPostViews(postId: string): Promise<void> {
+  await prisma.post.update({
+    where: { id: postId },
+    data: { views: { increment: 1 } },
+  });
+}

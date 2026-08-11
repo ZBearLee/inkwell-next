@@ -22,5 +22,116 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ==================== 文章正文样式（prose）==================== */
+/* 用 @tailwindcss/typography 提供默认排版，再微调代码块和标题锚点 */
+
+/* 标题锚点链接（rehype-autolink-headings 生成）*/
+.prose .heading-anchor {
+  margin-left: 0.5em;
+  opacity: 0;
+  text-decoration: none;
+  color: rgb(82 82 91);  /* zinc-600 */
+  transition: opacity 0.2s;
+}
+.prose .heading-anchor:hover {
+  opacity: 1;
+}
+.prose h2:hover .heading-anchor,
+.prose h3:hover .heading-anchor {
+  opacity: 1;
+}
+:where(.dark) .prose .heading-anchor {
+  color: rgb(161 161 170);  /* zinc-400 */
+}
+
+/* 代码块（shiki 渲染的 <pre> 已自带 background-color）*/
+.prose pre {
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  padding: 1rem 1.25rem;
+}
+.prose pre code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  padding: 0;
+  background: transparent;
+  font-weight: 400;
+}
+
+/* 行内代码 */
+.prose :not(pre) > code {
+  background: rgb(244 244 245);  /* zinc-100 */
+  border-radius: 0.25rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.875em;
+  font-weight: 500;
+  padding: 0.15em 0.35em;
+}
+:where(.dark) .prose :not(pre) > code {
+  background: rgb(39 39 42);  /* zinc-800 */
+  color: rgb(228 228 231);   /* zinc-200 */
+}
+
+/* 表格（GFM）*/
+.prose table {
+  font-size: 0.875rem;
+}
+
+/* ==================== 代码块复制按钮 ==================== */
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(161 161 170);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.prose pre {
+  position: relative;
+}
+.prose pre:hover .copy-button {
+  opacity: 1;
+}
+.copy-button:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+/* ==================== TOC 滚动高亮 ==================== */
+.toc-link {
+  display: block;
+  padding: 0.25rem 0 0.25rem 0.75rem;
+  border-left: 2px solid rgb(228 228 231);  /* zinc-200 */
+  color: rgb(82 82 91);                       /* zinc-600 */
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  transition: all 0.2s;
+}
+.toc-link:hover {
+  color: rgb(24 24 27);  /* zinc-900 */
+}
+.toc-link.active {
+  border-left-color: rgb(37 99 235);  /* blue-600 */
+  color: rgb(37 99 235);
+  font-weight: 500;
+}
+:where(.dark) .toc-link {
+  border-left-color: rgb(39 39 42);
+  color: rgb(161 161 170);
+}
+:where(.dark) .toc-link:hover {
+  color: rgb(244 244 245);
+}
+:where(.dark) .toc-link.active {
+  border-left-color: rgb(96 165 250);
+  color: rgb(96 165 250);
 }
