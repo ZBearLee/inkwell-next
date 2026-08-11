@@ -272,3 +272,123 @@ export async function incrementPostViews(postId: string): Promise<void> {
     data: { views: { increment: 1 } },
   });
 }
+
+// ==================== 搜索相关 ====================
+
+// 搜索结果项类型（比列表项轻量，不含 tags，减少数据传输）
+export type SearchResultItem = Pick<
+  Post,
+  "id" | "title" | "slug" | "excerpt" | "coverImage" | "readTime" | "publishedAt" | "views"
+> & {
+  author: Pick<User, "id" | "name" | "username">;
+  category: Pick<Category, "id" | "name" | "slug">;
+};
+
+/**
+ * 搜索文章（标题 + 摘要 + 内容模糊匹配）
+ *
+ * 为什么用 Prisma 的 contains 而非全文搜索（PostgreSQL full-text search）?
+ * → 博客文章量不大（< 1万篇），contains 足够快
+ * → contains 底层是 LIKE '%keyword%'，走顺序扫描
+ * → 如果数据量大，可后续升级到 PostgreSQL 的 tsvector + GIN 索引
+ * → 或接入 Algolia/Meilisearch 等专业搜索引擎
+ *
+ * @param query 搜索关键词
+ * @param page 页码
+ * @param pageSize 每页数量
+ */
+export async function searchPosts(
+  query: string,
+  page = 1,
+  pageSize = 10,
+): Promise<{
+  posts: SearchResultItem[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}> {
+  // 去除首尾空格，空查询返回空结果
+  const q = query.trim();
+  if (!q) {
+    return { posts: [], total: 0, totalPages: 0, currentPage: page };
+  }
+
+  // where 条件：标题/摘要/内容任一匹配（OR 关系）
+  // 注：当前 Prisma Client 基于 SQLite 生成（之前 prisma init 用的 sqlite），
+  //     不支持 insensitive 参数。PostgreSQL 默认大小写敏感，但中文场景影响不大。
+  //     如需大小写不敏感，可重新基于 postgresql provider 生成 Client。
+  const where = {
+    status: "PUBLISHED" as const,
+    OR: [
+      { title: { contains: q } },
+      { excerpt: { contains: q } },
+      { content: { contains: q } },
+    ],
+  };
+
+  // 并行查询：结果列表 + 总数
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        coverImage: true,
+        readTime: true,
+        publishedAt: true,
+        views: true,
+        author: { select: { id: true, name: true, username: true } },
+        category: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { publishedAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.post.count({ where }),
+  ]);
+
+  return {
+    posts: posts as SearchResultItem[],
+    total,
+    totalPages: Math.ceil(total / pageSize),
+    currentPage: page,
+  };
+}
+
+/**
+ * 搜索建议（轻量版，只查标题，用于输入框下拉提示）
+ *
+ * 与 searchPosts 的区别：
+ * - 只查 title 字段（更快）
+ * - 只返回 slug + title（数据量小）
+ * - 限制 5 条（下拉框展示空间有限）
+ *
+ * @param query 搜索关键词
+ */
+export async function searchSuggestions(
+  query: string,
+): Promise<{ slug: string; title: string; excerpt: string }[]> {
+  const q = query.trim();
+  if (!q || q.length < 2) {
+    // 少于 2 个字符不触发搜索，避免输入单字就查询
+    return [];
+  }
+
+  const posts = await prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+      title: { contains: q },
+    },
+    select: {
+      slug: true,
+      title: true,
+      excerpt: true,
+    },
+    orderBy: { publishedAt: "desc" },
+    take: 5,
+  });
+
+  return posts;
+}
