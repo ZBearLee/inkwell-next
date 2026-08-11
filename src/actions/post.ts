@@ -488,7 +488,7 @@ export async function togglePostStatusAction(
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true, authorId: true, slug: true, status: true },
+    select: { id: true, authorId: true, slug: true, status: true, publishedAt: true },
   });
 
   if (!post) {

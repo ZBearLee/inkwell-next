@@ -15,7 +15,7 @@
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, FileText, MessageCircle, Heart, Eye } from "lucide-react";
+import { Plus, FileText, MessageCircle, Heart, Eye, Tags } from "lucide-react";
 import { auth } from "@/auth";
 import { getMyPosts } from "@/lib/post";
 import { PostListActions } from "@/components/dashboard/post-list-actions";
@@ -65,13 +65,25 @@ export default async function MyPostsPage() {
             共 {posts.length} 篇（已发布 {publishedCount}，草稿 {draftCount}）
           </p>
         </div>
-        <Link
-          href="/dashboard/posts/new"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          写文章
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* 分类管理入口（仅 ADMIN 可见） */}
+          {session.user.role === "ADMIN" && (
+            <Link
+              href="/dashboard/categories"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Tags className="h-4 w-4" />
+              分类管理
+            </Link>
+          )}
+          <Link
+            href="/dashboard/posts/new"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" />
+            写文章
+          </Link>
+        </div>
       </div>
 
       {/* ---------- 文章列表 ---------- */}

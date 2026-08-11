@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Save, Send, ArrowLeft, CheckCircle } from "lucide-react";
 import { MarkdownEditor } from "./markdown-editor";
+import { TagSelector } from "./tag-selector";
 import { generateSlug } from "@/lib/slug";
 import {
   createPostAction,
@@ -148,20 +149,6 @@ export function PostEditor({ post, categories, tags }: PostEditorProps) {
       }
     };
   }, [title, content, excerpt, isEditMode, post]);
-
-  // ==================== 标签切换 ====================
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) => {
-      if (prev.includes(tagId)) {
-        return prev.filter((id) => id !== tagId);
-      }
-      if (prev.length >= 5) {
-        setError("最多选择 5 个标签");
-        return prev;
-      }
-      return [...prev, tagId];
-    });
-  };
 
   // ==================== 构建 FormData ====================
   const buildFormData = (submitStatus: "DRAFT" | "PUBLISHED"): FormData => {
@@ -395,25 +382,12 @@ export function PostEditor({ post, categories, tags }: PostEditorProps) {
           <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
             标签（最多 5 个）
           </label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => {
-              const isSelected = selectedTags.includes(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {tag.name}
-                </button>
-              );
-            })}
-          </div>
+          <TagSelector
+            tags={tags}
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
+            maxTags={5}
+          />
         </div>
       </div>
 
