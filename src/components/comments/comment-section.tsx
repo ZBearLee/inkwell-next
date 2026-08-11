@@ -21,11 +21,25 @@
 //
 // ==================== 登录态处理 ====================
 //
-// 当前模块还没接入鉴权（模块 6 才做 NextAuth）
-// 这里从数据库查 author 用户作为"当前登录用户"演示
-// 模块 6 完成后改为：const session = await auth(); const currentUserId = session?.user?.id
+// 用 auth() 读 session，获取当前登录用户的 id 和 role
+//   const session = await auth()
+//   const currentUserId = session?.user?.id
+//   const isAdmin = session?.user?.role === "ADMIN"
+//
+// 未登录时 currentUserId 为 undefined：
+//   → 不显示评论表单（提示"请先登录"）
+//   → 不显示回复/删除按钮
+//
+// ==================== ISR 注意事项 ====================
+//
+// auth() 内部调用 cookies() 读 session cookie
+// 这会让文章详情页从 SSG+ISR 变为动态渲染（SSR）
+// 代价：失去静态缓存，每次请求都重新渲染
+// 收益：评论按钮根据登录态个性化显示
+// 如需保留 ISR，可把评论区拆到单独的 dynamic 路由段（未来优化）
 
-import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { auth } from "@/auth";
 import { getComments } from "@/lib/post";
 import { CommentForm } from "./comment-form";
 import { CommentItem } from "./comment-item";
@@ -36,20 +50,17 @@ interface CommentSectionProps {
 }
 
 export async function CommentSection({ postSlug, postId }: CommentSectionProps) {
-  // 并行：查评论列表 + 查"当前登录用户"（演示用）
-  // TODO: 模块 6 接入 NextAuth 后，从 session 获取，删除这里的查询
-  const [comments, demoUser] = await Promise.all([
+  // 并行：查评论列表 + 读当前登录用户 session
+  // auth() 读 cookie 拿 JWT，不查数据库（session.user.id/role 已在 JWT 里）
+  const [comments, session] = await Promise.all([
     getComments(postSlug),
-    prisma.user.findUnique({
-      where: { username: "inkwriter" },
-      select: { id: true, role: true },
-    }),
+    auth(),
   ]);
 
-  // 演示用：用 seed 中的 author 用户作为"当前登录用户"
-  // 如果找不到（数据库未 seed），currentUserId 为 undefined，评论/删除按钮不显示
-  const currentUserId = demoUser?.id;
-  const isAdmin = demoUser?.role === "ADMIN";
+  // 从 session 提取用户信息
+  // 未登录时 session 为 null，currentUserId 为 undefined
+  const currentUserId = session?.user?.id;
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
     <section className="mt-16 border-t border-zinc-200 pt-8 dark:border-zinc-800">
@@ -69,7 +80,13 @@ export async function CommentSection({ postSlug, postId }: CommentSectionProps) 
           />
         ) : (
           <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700">
-            请先登录后再发表评论
+            <Link
+              href={`/login?redirect=/posts/${postSlug}`}
+              className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              登录
+            </Link>
+            后发表评论
           </div>
         )}
       </div>
