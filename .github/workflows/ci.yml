@@ -54,11 +54,11 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      # 3. 装 Node.js(pnpm 装好后,这步会自动读 package.json 的 packageManager)
+      # 3. 装 Node.js(pnpm 11.21.0 需要 Node.js v22.13+)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       # 4. 安装依赖
