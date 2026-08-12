@@ -87,3 +87,37 @@ src/
 ├── auth.ts        # NextAuth 配置
 └── proxy.ts       # 路由保护
 ```
+
+## 效果展示
+
+### 首页
+
+![首页](https://github.com/user-attachments/assets/716452eb-f257-46c2-a048-be7466b1d925)
+
+### 文章列表
+
+![文章列表](https://github.com/user-attachments/assets/1a9e5df9-aa6f-430a-a002-691ea162bea1)
+
+### 文章详情
+
+![文章详情](https://github.com/user-attachments/assets/fad3f4fb-0783-45ac-8585-4919a055657f)
+
+### 评论
+
+![评论](https://github.com/user-attachments/assets/716fa347-d7db-480c-b13c-7d6b2a68293d)
+
+### 登陆管理员账号管理文章和分类
+
+![登陆管理员账号管理文章和分类](https://github.com/user-attachments/assets/ba3267e4-2b7b-4142-a046-d3f217918276)
+
+### 用户登陆写文章
+
+![用户登陆写文章](https://github.com/user-attachments/assets/dc666e6d-5100-48d2-9d75-b35538752e97)
+
+### 远程数据库
+
+![远程数据库](https://github.com/user-attachments/assets/bd623364-4016-4173-816b-b7d26e3f2271)
+
+### vercel部署
+
+![vercel部署](https://github.com/user-attachments/assets/985d37c3-23b9-4853-ae09-d210b84305d0)
