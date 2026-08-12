@@ -30,16 +30,15 @@ import { getPostBySlug, getAllPostSlugs } from "@/lib/post";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// CI 环境无数据库,跳过构建时预渲染;生产环境保留 SSG 预生成
-const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
-export const dynamic = isCI ? "force-dynamic" : "auto";
-
 // ISR：和文章详情页一致的缓存策略
 export const revalidate = 60;
 
-// 构建时预生成所有文章的 OG 图(仅生产环境,CI 跳过)
+// 构建时预生成所有文章的 OG 图
+// CI 环境无数据库,返回空数组跳过预渲染;生产环境正常预生成
 export async function generateStaticParams() {
-  if (isCI) return [];
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+    return [];
+  }
   const posts = await getAllPostSlugs();
   return posts.map((post) => ({ slug: post.slug }));
 }
