@@ -63,8 +63,11 @@ jobs:
 
       # 4. 安装依赖
       #    --frozen-lockfile:严格按 pnpm-lock.yaml 装,不更新,保证一致性
+      #    DATABASE_URL:占位值,prisma.config.ts 的 env("DATABASE_URL") 要求必须存在
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
       # 5. 生成 Prisma Client
       #    代码里 import { PrismaClient } from "@/generated/prisma"
