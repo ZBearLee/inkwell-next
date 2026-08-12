@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Prisma 生成的文件,不参与 ESLint 检查
+    "src/generated/**",
   ]),
 ]);
 
