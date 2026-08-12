@@ -25,7 +25,7 @@ import { notFound } from "next/navigation";
 import { FileText, MessageCircle, Calendar } from "lucide-react";
 import { getUserProfile, getUserPosts, getAllUsernames } from "@/lib/user";
 import { PostCard } from "@/components/post-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate, roleLabel } from "@/lib/utils";
 
 // ==================== ISR 配置 ====================
 export const revalidate = 60;
@@ -87,13 +87,6 @@ export default async function UserProfilePage({ params }: PageProps) {
   const displayName = user.name || user.username;
   const initials = displayName.charAt(0).toUpperCase();
 
-  // 角色中文映射
-  const roleLabel = {
-    USER: "注册用户",
-    AUTHOR: "作者",
-    ADMIN: "管理员",
-  }[user.role];
-
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       {/* ==================== 用户信息头部 ==================== */}
@@ -120,8 +113,8 @@ export default async function UserProfilePage({ params }: PageProps) {
                 {displayName}
               </h1>
               <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                {roleLabel}
-              </span>
+              {roleLabel(user.role)}
+            </span>
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               @{user.username}

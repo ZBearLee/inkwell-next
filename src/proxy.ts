@@ -30,7 +30,7 @@ import { NextResponse } from "next/server";
 // 用正则匹配，方便扩展
 const protectedPaths = [
   "/profile",        // 用户中心
-  "/dashboard",      // 作者后台
+  "/dashboard",      // 用户后台
   "/settings",       // 设置
 ];
 

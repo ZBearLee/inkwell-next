@@ -26,9 +26,7 @@ export default async function NewPostPage() {
   if (!session?.user?.id) {
     redirect("/login?redirect=/dashboard/posts/new");
   }
-  if (session.user.role !== "AUTHOR" && session.user.role !== "ADMIN") {
-    redirect("/dashboard/posts");
-  }
+  // 所有登录用户都能写文章，不再卡角色
 
   // 2. 查询分类和标签（供表单选择）
   const [categories, tags] = await Promise.all([

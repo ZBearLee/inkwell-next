@@ -1,25 +1,31 @@
 // src/app/dashboard/posts/page.tsx
-// 我的文章列表（Server Component）
+// 文章管理列表（Server Component）
 //
 // ==================== 为什么是 Server Component? ====================
 //
-// 1. 直接查数据库拿文章列表（getMyPosts）
-// 2. 需要读 session 判断登录态 + 获取 userId
+// 1. 直接查数据库拿文章列表（getMyPosts / getAllPostsForAdmin）
+// 2. 需要读 session 判断登录态 + 获取 userId + 角色
 // 3. SEO 不重要（后台页面），但 SSR 保证数据实时
+//
+// ==================== 角色分流 ====================
+//
+// USER  → getMyPosts(session.user.id)         只看自己的文章
+// ADMIN → getAllPostsForAdmin()                看所有用户的文章，表格多一列"作者"
 //
 // ==================== 数据流 ====================
 //
-// Page (Server) → 查 getMyPosts(session.user.id)
+// Page (Server) → 查文章列表
 //   → 渲染表格 + 传 props 给 PostListActions (Client)
 //     → 用户点击删除/发布 → Server Action → revalidatePath 刷新
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, FileText, MessageCircle, Heart, Eye, Tags } from "lucide-react";
+import { Plus, FileText, MessageCircle, Tags } from "lucide-react";
 import { auth } from "@/auth";
-import { getMyPosts } from "@/lib/post";
+import { getMyPosts, getAllPostsForAdmin } from "@/lib/post";
+import type { MyPostItem, AdminPostItem } from "@/lib/post";
 import { PostListActions } from "@/components/dashboard/post-list-actions";
-import { formatDate, relativeTime } from "@/lib/utils";
+import { relativeTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -30,24 +36,17 @@ export default async function MyPostsPage() {
     redirect("/login?redirect=/dashboard/posts");
   }
 
-  // 2. 权限校验：只有作者/管理员能访问后台
-  if (session.user.role !== "AUTHOR" && session.user.role !== "ADMIN") {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950">
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            需要作者权限才能访问文章管理后台
-          </p>
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
-            当前角色：{session.user.role}（请联系管理员升级为作者）
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // 2. 所有登录用户都能进后台发文
+  //    只要登录就能写文章，不再卡角色
+  //    ADMIN 额外能管理所有人的文章
 
-  // 3. 查询我的文章（含草稿）
-  const posts = await getMyPosts(session.user.id);
+  // 3. 按角色分流查询文章
+  //    USER：只看自己的文章
+  //    ADMIN：看所有用户的文章（额外返回 author 字段，表格里显示作者列）
+  const isAdmin = session.user.role === "ADMIN";
+  const posts: (MyPostItem | AdminPostItem)[] = isAdmin
+    ? await getAllPostsForAdmin()
+    : await getMyPosts(session.user.id);
 
   // 统计数据
   const publishedCount = posts.filter((p) => p.status === "PUBLISHED").length;
@@ -59,7 +58,7 @@ export default async function MyPostsPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            我的文章
+            {isAdmin ? "所有文章" : "我的文章"}
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             共 {posts.length} 篇（已发布 {publishedCount}，草稿 {draftCount}）
@@ -67,7 +66,7 @@ export default async function MyPostsPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* 分类管理入口（仅 ADMIN 可见） */}
-          {session.user.role === "ADMIN" && (
+          {isAdmin && (
             <Link
               href="/dashboard/categories"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -91,19 +90,22 @@ export default async function MyPostsPage() {
         <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-700">
           <FileText className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            还没有文章，点击"写文章"开始创作吧
+            {isAdmin ? "暂无任何文章" : '还没有文章，点击"写文章"开始创作吧'}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
           <table className="w-full">
             {/* 表头 */}
             <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
               <tr className="text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
                 <th className="px-4 py-3">标题</th>
+                {isAdmin && (
+                  <th className="hidden px-4 py-3 md:table-cell">作者</th>
+                )}
                 <th className="hidden px-4 py-3 md:table-cell">分类</th>
                 <th className="hidden px-4 py-3 sm:table-cell">状态</th>
-                <th className="hidden px-4 py-3 lg:table-cell">数据</th>
+                <th className="hidden px-4 py-3 sm:table-cell">互动</th>
                 <th className="hidden px-4 py-3 sm:table-cell">更新时间</th>
                 <th className="px-4 py-3 text-right">操作</th>
               </tr>
@@ -124,6 +126,17 @@ export default async function MyPostsPage() {
                       /posts/{post.slug}
                     </div>
                   </td>
+
+                  {/* 作者（仅 ADMIN 视图） */}
+                  {isAdmin && (
+                    <td className="hidden px-4 py-3 md:table-cell">
+                      <span className="text-zinc-700 dark:text-zinc-300">
+                        {"author" in post
+                          ? post.author.name || post.author.username
+                          : ""}
+                      </span>
+                    </td>
+                  )}
 
                   {/* 分类 */}
                   <td className="hidden px-4 py-3 md:table-cell">
@@ -147,27 +160,19 @@ export default async function MyPostsPage() {
                     )}
                   </td>
 
-                  {/* 数据统计 */}
-                  <td className="hidden px-4 py-3 lg:table-cell">
+                  {/* 互动统计（评论数）*/}
+                  <td className="hidden px-4 py-3 sm:table-cell">
                     <div className="flex items-center gap-3 text-xs text-zinc-500">
-                      <span className="flex items-center gap-0.5" title="阅读量">
-                        <Eye className="h-3 w-3" />
-                        {post.views}
-                      </span>
                       <span className="flex items-center gap-0.5" title="评论数">
                         <MessageCircle className="h-3 w-3" />
                         {post._count.comments}
-                      </span>
-                      <span className="flex items-center gap-0.5" title="点赞数">
-                        <Heart className="h-3 w-3" />
-                        {post._count.likes}
                       </span>
                     </div>
                   </td>
 
                   {/* 更新时间 */}
                   <td className="hidden px-4 py-3 sm:table-cell">
-                    <span className="text-xs text-zinc-500" title={formatDate(post.updatedAt)}>
+                    <span className="text-xs text-zinc-500" title={post.updatedAt.toLocaleString("zh-CN")}>
                       {relativeTime(post.updatedAt)}
                     </span>
                   </td>

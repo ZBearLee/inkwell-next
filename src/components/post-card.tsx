@@ -7,6 +7,7 @@
 // → 纯展示组件，无需交互状态，不打包到客户端 bundle，零 JS 开销
 
 import Link from "next/link";
+import Image from "next/image";
 import { Clock, User } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import type { PostWithRelations } from "@/lib/post";
@@ -17,14 +18,16 @@ interface PostCardProps {
   showCover?: boolean;
   // 是否高亮（首页第一篇可特殊处理）
   featured?: boolean;
+  // 是否 LCP 图片（首页第一篇）：加 priority + eager 立即加载
+  priority?: boolean;
 }
 
-export function PostCard({ post, showCover = true, featured = false }: PostCardProps) {
+export function PostCard({ post, showCover = true, featured = false, priority = false }: PostCardProps) {
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700",
-        featured && "md:flex-row",
+        "group relative overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700",
+        featured ? "grid grid-cols-1 md:grid-cols-2 md:items-start" : "flex flex-col",
       )}
     >
       {/* 封面图 */}
@@ -33,14 +36,17 @@ export function PostCard({ post, showCover = true, featured = false }: PostCardP
           href={`/posts/${post.slug}`}
           className={cn(
             "relative block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800",
-            featured && "md:aspect-auto md:w-1/2",
+            featured && "md:self-start",
           )}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* next/image：自动优化（格式转换、尺寸适配、懒加载） */}
+          <Image
             src={post.coverImage}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            priority={priority}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-contain transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
       )}

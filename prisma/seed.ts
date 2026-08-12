@@ -1,6 +1,6 @@
 // prisma/seed.ts
 // 种子数据：2 个用户（作者 + 管理员）、3 个分类、5 个标签、5 篇文章
-// 设计意图：提供最小可运行的演示数据，覆盖已发布/草稿两种状态、多分类多标签
+// 设计意图：提供最小可运行的数据，覆盖已发布/草稿两种状态、多分类多标签
 //
 // 运行：pnpm db:seed
 // 幂等性：用 upsert 按唯一键写入，重复执行不会报错也不会产生重复数据
@@ -26,7 +26,7 @@ async function main() {
       name: "墨作者",
       passwordHash: authorPassword,
       bio: "全栈开发者，热爱分享 Next.js 与 TypeScript 实践",
-      role: Role.AUTHOR,
+      role: Role.USER,
     },
   });
 
@@ -43,7 +43,7 @@ async function main() {
     },
   });
 
-  console.log(`  ✓ 用户: ${author.name} (作者), ${admin.name} (管理员)`);
+  console.log(`  ✓ 用户: ${author.name} (用户), ${admin.name} (管理员)`);
 
   // ---------- 2. 分类 ----------
   const categories = await Promise.all(
@@ -280,7 +280,7 @@ vercel --prod
     });
   }
 
-  // 第 5 篇保持草稿状态，用于演示草稿逻辑
+  // 第 5 篇保持草稿状态，用于草稿逻辑
   const draftPost = posts[4];
   await prisma.post.upsert({
     where: { slug: draftPost.slug },
@@ -299,7 +299,7 @@ vercel --prod
 
   console.log(`  ✓ 文章: 4 篇已发布, 1 篇草稿`);
 
-  // ---------- 5. 评论（演示楼中楼）----------
+  // ---------- 5. 评论（楼中楼）----------
   // 给第一篇文章加 2 条顶级评论 + 1 条回复，第二篇加 1 条顶级评论 + 1 条回复
   const publishedPosts = await prisma.post.findMany({
     where: { status: PostStatus.PUBLISHED },
@@ -358,11 +358,11 @@ vercel --prod
       },
     });
 
-    console.log(`  ✓ 评论: 3 条顶级 + 2 条回复（楼中楼演示）`);
+    console.log(`  ✓ 评论: 3 条顶级 + 2 条回复（楼中楼）`);
   }
 
   console.log("🎉 种子数据写入完成！");
-  console.log("   作者账号: author@inkwell.dev / author123");
+  console.log("   用户账号: author@inkwell.dev / author123");
   console.log("   管理员账号: admin@inkwell.dev / admin123");
 }
 

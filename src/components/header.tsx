@@ -17,6 +17,7 @@ import Link from "next/link";
 import { PenLine } from "lucide-react";
 import { SearchBox } from "@/components/search-box";
 import { UserMenu } from "@/components/user-menu";
+import { NavLinks } from "@/components/nav-links";
 import { auth } from "@/auth";
 
 export async function Header() {
@@ -24,8 +25,8 @@ export async function Header() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+    <header className="relative z-50 shrink-0 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-4">
         {/* Logo */}
         <Link
           href="/"
@@ -35,24 +36,12 @@ export async function Header() {
           Inkwell
         </Link>
 
-        {/* 导航 */}
-        <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
-          <Link
-            href="/"
-            className="text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-          >
-            首页
-          </Link>
-          <Link
-            href="/posts"
-            className="text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-          >
-            文章
-          </Link>
-        </nav>
+        {/* 导航（Client Component — 需要高亮当前路由）*/}
+        <NavLinks />
 
-        {/* 搜索框（Client Component）*/}
-        <div className="ml-auto w-full max-w-xs">
+        {/* 搜索框（Client Component） */}
+        {/* 移动端隐藏，节省空间避免挤压 Logo / 登录注册按钮 */}
+        <div className="ml-auto hidden w-full max-w-xs sm:block">
           <SearchBox />
         </div>
 
@@ -71,7 +60,7 @@ export async function Header() {
             </Link>
             <Link
               href="/register"
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
             >
               注册
             </Link>

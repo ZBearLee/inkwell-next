@@ -26,6 +26,7 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeShiki from "@shikijs/rehype";
 import rehypeStringify from "rehype-stringify";
 import { visit } from "unist-util-visit";
+import GithubSlugger from "github-slugger";
 
 // 缓存 processor 实例，避免每次渲染都重新初始化（shiki 初始化需加载语言定义）
 // 用 any 类型避免 unified 复杂的泛型推断问题
@@ -134,16 +135,16 @@ export function extractToc(markdown: string): TocItem[] {
   // 匹配 ## 和 ### 开头的标题（不匹配 # 一级标题，因为文章标题用 H1）
   const headingRegex = /^(#{2,3})\s+(.+)$/;
 
+  // 用 github-slugger 生成 slug，与 rehype-slug 完全一致
+  // 同一个 slugger 实例处理重复标题会自动加 -1 -2 后缀
+  const slugger = new GithubSlugger();
+
   for (const line of lines) {
     const match = line.match(headingRegex);
     if (match) {
       const level = match[1].length;        // 2 或 3
       const text = match[2].trim();
-      // 生成 slug：与 rehype-slug 一致（小写、空格转横线、去特殊字符）
-      const slug = text
-        .toLowerCase()
-        .replace(/[^\w\u4e00-\u9fa5\s-]/g, "")  // 保留中英文、数字、空格、横线
-        .replace(/\s+/g, "-");
+      const slug = slugger.slug(text);
       toc.push({ level, text, slug });
     }
   }

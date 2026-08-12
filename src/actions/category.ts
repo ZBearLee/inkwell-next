@@ -4,8 +4,8 @@
 // ==================== 设计要点 ====================
 //
 // 1. 权限校验：只有 ADMIN 可以管理分类
-//    → 和 post.ts 的 AUTHOR/ADMIN 不同，分类是全局结构，作者无权修改
-//    → 避免作者误改分类导致其他人的文章分类混乱
+//    → 分类是全局结构，修改会影响所有用户的文章
+//    → 限制为 ADMIN 避免误改导致其他人的文章分类混乱
 //
 // 2. slug 唯一性：分类 slug 是 URL 路径（/category/[slug]），必须唯一
 //
@@ -43,8 +43,8 @@ interface CategoryActionResult {
  * 检查当前用户是否为管理员
  *
  * 和 post.ts 的 checkPostPermission 区别：
- *   - post.ts 允许 AUTHOR 和 ADMIN
- *   - 分类管理只允许 ADMIN（分类是全局结构，作者无权改）
+ *   - post.ts 允许 USER 和 ADMIN 写文章
+ *   - 分类管理只允许 ADMIN（分类是全局结构，USER 无权改）
  */
 async function checkAdminPermission(): Promise<{ userId: string } | null> {
   const session = await auth();

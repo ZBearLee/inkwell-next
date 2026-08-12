@@ -3,6 +3,7 @@
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { type Role } from "@/generated/prisma";
 
 /**
  * 合并 Tailwind CSS 类名
@@ -42,4 +43,20 @@ export function relativeTime(date: Date | string): string {
   if (hours < 24) return `${hours} 小时前`;
   if (days < 7) return `${days} 天前`;
   return formatDate(d);
+}
+
+/**
+ * 角色中文标签映射
+ * USER → 用户，ADMIN → 管理员
+ *
+ * 当前系统只有两种角色（USER / ADMIN），如未来扩展为更多角色（如 EDITOR），
+ * 改这里一处即可（避免在每个页面重复 { USER: "...", ADMIN: "..." } 对象字面量）
+ */
+const ROLE_LABELS: Record<Role, string> = {
+  USER: "用户",
+  ADMIN: "管理员",
+};
+
+export function roleLabel(role: Role): string {
+  return ROLE_LABELS[role] ?? role;
 }

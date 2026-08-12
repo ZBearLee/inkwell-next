@@ -19,7 +19,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Calendar, Clock, Eye, MessageCircle, Heart, Bookmark } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, MessageCircle } from "lucide-react";
 import {
   getPostBySlug,
   getAllPostSlugs,
@@ -27,9 +27,9 @@ import {
   getRelatedPosts,
 } from "@/lib/post";
 import { renderMarkdown, extractToc } from "@/lib/markdown";
-import { PostCard } from "@/components/post-card";
 import { Toc } from "@/components/toc";
 import { CopyButton } from "@/components/copy-button";
+import { ReadingProgress } from "@/components/reading-progress";
 import { CommentSection } from "@/components/comments/comment-section";
 import { formatDate } from "@/lib/utils";
 
@@ -110,6 +110,38 @@ export default async function PostDetailPage({ params }: PageProps) {
   ]);
 
   return (
+    <>
+    {/* 阅读进度条（固定在顶部，跟随滚动） */}
+    <ReadingProgress />
+
+    {/* JSON-LD 结构化数据（SEO — 帮搜索引擎理解文章内容） */}
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: post.title,
+          description: post.excerpt,
+          author: {
+            "@type": "Person",
+            name: post.author.name ?? post.author.username,
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "Inkwell-next",
+          },
+          datePublished: post.publishedAt?.toISOString(),
+          dateModified: post.updatedAt.toISOString(),
+          ...(post.coverImage && { image: post.coverImage }),
+          mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/posts/${post.slug}`,
+          },
+        }),
+      }}
+    />
+
     <div className="mx-auto max-w-6xl px-4 py-12">
       {/* 返回列表 */}
       <Link
@@ -152,12 +184,10 @@ export default async function PostDetailPage({ params }: PageProps) {
             {/* 摘要 */}
             <p className="mb-4 text-lg text-zinc-600 dark:text-zinc-400">{post.excerpt}</p>
 
-            {/* 元信息 */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-500">
-              <span className="inline-flex items-center gap-1">
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {post.author.name ?? post.author.username}
-                </span>
+            {/* 元信息：作者为主，其余为辅 */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                {post.author.name ?? post.author.username}
               </span>
               {post.publishedAt && (
                 <span className="inline-flex items-center gap-1">
@@ -167,30 +197,18 @@ export default async function PostDetailPage({ params }: PageProps) {
               )}
               <span className="inline-flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                {post.readTime} 分钟阅读
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                {post.views} 次浏览
+                {post.readTime} 分钟
               </span>
               <span className="inline-flex items-center gap-1">
                 <MessageCircle className="h-3.5 w-3.5" />
                 {post._count.comments} 评论
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Heart className="h-3.5 w-3.5" />
-                {post._count.likes}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Bookmark className="h-3.5 w-3.5" />
-                {post._count.bookmarks}
               </span>
             </div>
           </header>
 
           {/* 文章正文（Markdown 渲染）*/}
           <div
-            className="prose prose-zinc max-w-none dark:prose-invert"
+            className="prose prose-zinc max-w-none dark:prose-invert prose-headings:scroll-mt-6 lg:max-w-3xl"
             dangerouslySetInnerHTML={{ __html: html }}
           />
 
@@ -238,12 +256,26 @@ export default async function PostDetailPage({ params }: PageProps) {
           {/* ==================== 相关文章 ==================== */}
           {related.length > 0 && (
             <section className="mt-12">
-              <h2 className="mb-4 text-xl font-bold text-zinc-900 dark:text-zinc-50">
+              <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-50">
                 相关文章
               </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {related.map((p) => (
-                  <PostCard key={p.id} post={p} showCover={false} />
+                  <Link
+                    key={p.id}
+                    href={`/posts/${p.slug}`}
+                    className="group rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+                  >
+                    <span className="mb-2 inline-block text-xs font-medium text-blue-600 dark:text-blue-400">
+                      {p.category.name}
+                    </span>
+                    <h3 className="mb-2 line-clamp-2 text-sm font-medium text-zinc-900 transition-colors group-hover:text-blue-600 dark:text-zinc-100 dark:group-hover:text-blue-400">
+                      {p.title}
+                    </h3>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {formatDate(p.publishedAt!)}
+                    </span>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -258,11 +290,12 @@ export default async function PostDetailPage({ params }: PageProps) {
 
         {/* ==================== 侧边栏：TOC ==================== */}
         <aside className="hidden lg:block">
-          <div className="sticky top-20">
+          <div className="sticky top-6">
             <Toc items={toc} />
           </div>
         </aside>
       </div>
     </div>
+    </>
   );
 }

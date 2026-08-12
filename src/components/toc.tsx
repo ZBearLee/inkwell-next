@@ -34,6 +34,8 @@ export function Toc({ items }: TocProps) {
     if (headings.length === 0) return;
 
     // 用 IntersectionObserver 监听标题进入/离开视口
+    // root 设为 main 滚动容器（因为 main 区域独立滚动）
+    const root = document.getElementById("main-scroll");
     const observer = new IntersectionObserver(
       (entries) => {
         // 找到当前最靠近视口顶部的可见标题
@@ -46,8 +48,8 @@ export function Toc({ items }: TocProps) {
         }
       },
       {
-        // 根节点向上偏移 80px（导航栏高度），让标题进入"活跃区"才算
-        rootMargin: "-80px 0px -70% 0px",
+        root,
+        rootMargin: "-20px 0px -70% 0px",
         threshold: 0,
       },
     );
@@ -56,6 +58,19 @@ export function Toc({ items }: TocProps) {
 
     return () => observer.disconnect();
   }, [items]);
+
+  // 点击目录项：手动滚动 main 容器到目标标题
+  // 不能用默认的 href="#slug" 跳转，因为滚动容器是 main（overflow-y-auto）而非 window
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, slug: string) => {
+    e.preventDefault();
+    const target = document.getElementById(slug);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      // 手动更新 URL hash（不触发默认滚动）
+      history.replaceState(null, "", `#${slug}`);
+      setActiveId(slug);
+    }
+  };
 
   if (items.length === 0) return null;
 
@@ -69,6 +84,7 @@ export function Toc({ items }: TocProps) {
           <li key={item.slug}>
             <a
               href={`#${item.slug}`}
+              onClick={(e) => handleClick(e, item.slug)}
               className={`toc-link ${activeId === item.slug ? "active" : ""} ${
                 item.level === 3 ? "pl-5" : ""
               }`}

@@ -50,7 +50,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     <div className="mx-auto max-w-6xl px-4 py-12">
       {/* 分类头部 */}
       <header className="mb-8">
-        <p className="mb-1 text-sm text-zinc-500">分类</p>
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">{category.name}</h1>
         {category.description && (
           <p className="mt-2 text-zinc-600 dark:text-zinc-400">{category.description}</p>
@@ -84,10 +83,12 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </div>
 
         {/* 侧边栏 */}
-        <div className="lg:sticky lg:top-20 lg:h-fit">
-          <Suspense fallback={<SidebarSkeleton />}>
-            <Sidebar />
-          </Suspense>
+        <div>
+          <div className="lg:sticky lg:top-6">
+            <Suspense fallback={<SidebarSkeleton />}>
+              <Sidebar />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>

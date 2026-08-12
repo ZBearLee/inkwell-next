@@ -62,11 +62,16 @@ export async function CommentSection({ postSlug, postId }: CommentSectionProps) 
   const currentUserId = session?.user?.id;
   const isAdmin = session?.user?.role === "ADMIN";
 
+  // 评论总数 = 顶级评论 + 所有回复（与 header 的 _count.comments 口径一致）
+  const totalComments =
+    comments.length +
+    comments.reduce((sum, c) => sum + (c.replies?.length ?? 0), 0);
+
   return (
     <section className="mt-16 border-t border-zinc-200 pt-8 dark:border-zinc-800">
       <h2 className="mb-6 text-xl font-bold text-zinc-900 dark:text-zinc-50">
-        评论 {comments.length > 0 && (
-          <span className="ml-1 text-zinc-400">({comments.length})</span>
+        评论 {totalComments > 0 && (
+          <span className="ml-1 text-zinc-400">({totalComments})</span>
         )}
       </h2>
 
@@ -76,7 +81,6 @@ export async function CommentSection({ postSlug, postId }: CommentSectionProps) 
           <CommentForm
             postId={postId}
             postSlug={postSlug}
-            authorId={currentUserId}
           />
         ) : (
           <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700">

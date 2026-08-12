@@ -12,6 +12,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { CategoryForm } from "@/components/dashboard/category-form";
+import { AdminRequired } from "@/components/dashboard/admin-required";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function NewCategoryPage() {
     redirect("/login?redirect=/dashboard/categories/new");
   }
   if (session.user.role !== "ADMIN") {
-    redirect("/dashboard/categories");
+    return <AdminRequired currentRole={session.user.role} />;
   }
 
   return (

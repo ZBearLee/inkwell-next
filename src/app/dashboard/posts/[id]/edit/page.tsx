@@ -27,9 +27,7 @@ export default async function EditPostPage({ params }: PageProps) {
   if (!session?.user?.id) {
     redirect(`/login?redirect=/dashboard/posts/${postId}/edit`);
   }
-  if (session.user.role !== "AUTHOR" && session.user.role !== "ADMIN") {
-    redirect("/dashboard/posts");
-  }
+  // 所有登录用户都能进编辑页（只能编辑自己的文章）
 
   // 2. 并行查询：文章数据 + 分类 + 标签
   const [post, categories, tags] = await Promise.all([

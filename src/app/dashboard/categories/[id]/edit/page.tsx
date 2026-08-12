@@ -12,6 +12,7 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CategoryForm } from "@/components/dashboard/category-form";
+import { AdminRequired } from "@/components/dashboard/admin-required";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
     redirect(`/login?redirect=/dashboard/categories/${categoryId}/edit`);
   }
   if (session.user.role !== "ADMIN") {
-    redirect("/dashboard/categories");
+    return <AdminRequired currentRole={session.user.role} />;
   }
 
   // 2. 查询分类数据

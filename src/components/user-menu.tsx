@@ -87,9 +87,9 @@ export function UserMenu({ user }: UserMenuProps) {
                 {user.email}
               </p>
             )}
-            {user.role && user.role !== "USER" && (
+            {user.role && user.role === "ADMIN" && (
               <span className="mt-1 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                {user.role === "ADMIN" ? "管理员" : user.role === "AUTHOR" ? "作者" : user.role}
+                管理员
               </span>
             )}
           </div>
@@ -113,16 +113,15 @@ export function UserMenu({ user }: UserMenuProps) {
             我的主页
           </Link>
 
-          {(user.role === "ADMIN" || user.role === "AUTHOR") && (
-            <Link
-              href="/dashboard/posts"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              <Settings className="h-4 w-4" />
-              文章管理
-            </Link>
-          )}
+          {/* 所有登录用户都能进文章管理后台写文章 */}
+          <Link
+            href="/dashboard/posts"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            <Settings className="h-4 w-4" />
+            文章管理
+          </Link>
 
           {/* 分隔线 */}
           <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />

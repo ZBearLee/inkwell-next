@@ -1,12 +1,12 @@
 // src/actions/post.ts
-// 文章管理 Server Actions（作者后台）
+// 文章管理 Server Actions（用户后台）
 //
 // ==================== 设计要点 ====================
 //
 // 1. 权限校验三重检查：
 //    a. auth() 检查是否登录
-//    b. session.user.role 检查是否 AUTHOR/ADMIN（USER 不能发文）
-//    c. 更新/删除时检查 post.authorId === session.user.id（不能改别人的文章）
+//    b. 所有登录用户都能发文（USER / ADMIN 均可，不再卡角色）
+//    c. 更新/删除时检查 post.authorId === session.user.id（非 ADMIN 不能改他人文章）
 //    → ADMIN 可以管理所有文章（额外判断）
 //
 // 2. Zod 校验：用共享的 schema，前后端一致
@@ -60,12 +60,7 @@ async function checkPostPermission(): Promise<
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  // 只有 AUTHOR 和 ADMIN 可以发文
-  // USER 角色无权限（注册用户只能评论/点赞/收藏）
-  if (session.user.role !== "AUTHOR" && session.user.role !== "ADMIN") {
-    return null;
-  }
-
+  // 只要登录就能发文（不卡角色）
   return { userId: session.user.id, role: session.user.role };
 }
 
@@ -89,7 +84,7 @@ export async function createPostAction(formData: FormData): Promise<ActionResult
   // 1. 权限检查
   const perm = await checkPostPermission();
   if (!perm) {
-    return { success: false, error: "无发文权限，需要作者角色" };
+    return { success: false, error: "请先登录" };
   }
 
   // 2. 从 formData 提取并校验
@@ -394,8 +389,8 @@ export async function autoSavePostAction(
 /**
  * 删除文章
  *
- * 权限：作者只能删自己的，ADMIN 可以删任何人的
- * 级联：schema 中定义了 onDelete: Cascade，评论/点赞/收藏会自动删除
+ * 权限：USER 只能删自己的，ADMIN 可以删任何人的
+ * 级联：schema 中定义了 onDelete: Cascade，评论会自动删除
  *
  * @param postId 文章 id
  */
@@ -420,7 +415,7 @@ export async function deletePostAction(postId: string): Promise<ActionResult> {
     return { success: false, error: "无权删除他人的文章" };
   }
 
-  // 3. 删除（级联删除评论/点赞/收藏/标签关联）
+  // 3. 删除（级联删除评论标签关联）
   try {
     await prisma.post.delete({
       where: { id: postId },

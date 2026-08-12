@@ -63,7 +63,7 @@ function LoginForm() {
           登录
         </h1>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          登录后可以评论、点赞、收藏文章
+          登录后可以评论文章、发布内容
         </p>
       </div>
 
@@ -133,10 +133,10 @@ function LoginForm() {
         </Link>
       </p>
 
-      {/* 演示账号提示（开发用，生产删除）*/}
+      {/* 账号提示（开发用，生产删除）*/}
       <div className="mt-8 rounded-lg border border-dashed border-zinc-200 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-        <p className="mb-1 font-medium">演示账号：</p>
-        <p>作者：author@inkwell.dev / author123</p>
+        <p className="mb-1 font-medium">默认账号：</p>
+        <p>用户：author@inkwell.dev / author123</p>
         <p>管理员：admin@inkwell.dev / admin123</p>
       </div>
     </div>

@@ -19,9 +19,8 @@ datasource db {
 
 // ===================== 用户角色枚举 =====================
 enum Role {
-  USER      // 注册用户
-  AUTHOR    // 作者（可发文）
-  ADMIN     // 管理员
+  USER      // 注册用户（可发文、评论、点赞、收藏）
+  ADMIN     // 管理员（拥有所有权限：跨用户管理、分类管理）
 }
 
 // ===================== 用户 =====================
@@ -33,7 +32,7 @@ model User {
   passwordHash  String?        // OAuth 用户可为空
   image         String?        // 头像 URL
   bio           String?        // 个人简介
-  role          Role           @default(USER)
+  role          Role           @default(USER)  // 项目：注册即可发文
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

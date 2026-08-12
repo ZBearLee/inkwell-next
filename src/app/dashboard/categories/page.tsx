@@ -3,8 +3,8 @@
 //
 // ==================== 和文章列表页的区别 ====================
 //
-// 1. 权限：分类管理只允许 ADMIN（文章管理允许 AUTHOR + ADMIN）
-//    → 分类是全局结构，修改影响所有作者的文章
+// 1. 权限：分类管理只允许 ADMIN（文章管理允许 USER + ADMIN）
+//    → 分类是全局结构，修改影响所有用户的文章
 // 2. 删除保护：分类下有文章时不能删（文章管理可以随时删自己的）
 // 3. 无分页：分类通常不超过几十个，一次全部加载
 //
@@ -20,6 +20,7 @@ import { Plus, Tag, FileText } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CategoryListActions } from "@/components/dashboard/category-list-actions";
+import { AdminRequired } from "@/components/dashboard/admin-required";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -60,18 +61,7 @@ export default async function CategoriesPage() {
     redirect("/login?redirect=/dashboard/categories");
   }
   if (session.user.role !== "ADMIN") {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950">
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            需要管理员权限才能管理分类
-          </p>
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
-            当前角色：{session.user.role}
-          </p>
-        </div>
-      </div>
-    );
+    return <AdminRequired currentRole={session.user.role} />;
   }
 
   // 2. 查询所有分类

@@ -17,7 +17,7 @@
 // │  简介                                │
 // ├─────────────────────────────────────┤
 // │  统计数据                            │
-// │  文章 | 评论 | 点赞 | 收藏           │
+// │  文章 | 评论                          │
 // ├─────────────────────────────────────┤
 // │  编辑资料表单（Client Component）    │
 // │  昵称 / 头像 / 简介                  │
@@ -31,11 +31,11 @@
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FileText, MessageCircle, Heart, Bookmark, Calendar, ExternalLink } from "lucide-react";
+import { FileText, MessageCircle, Calendar, ExternalLink } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/profile-form";
-import { formatDate } from "@/lib/utils";
+import { formatDate, roleLabel } from "@/lib/utils";
 
 // 受保护页面，禁用静态渲染
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function ProfilePage() {
   // 2. 并行查询：完整用户信息 + 各项统计
   // session.user 只有 id/email/name/username/role/image
   // bio 和 createdAt 需要从数据库取
-  const [user, postCount, commentCount, likeCount, bookmarkCount] = await Promise.all([
+  const [user, postCount, commentCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -67,10 +67,6 @@ export default async function ProfilePage() {
     prisma.post.count({ where: { authorId: session.user.id } }),
     // 该用户发的评论数
     prisma.comment.count({ where: { authorId: session.user.id } }),
-    // 该用户给的点赞数
-    prisma.like.count({ where: { userId: session.user.id } }),
-    // 该用户的收藏数
-    prisma.bookmark.count({ where: { userId: session.user.id } }),
   ]);
 
   // 理论上 user 一定存在（session 有效说明用户在库里）
@@ -78,13 +74,6 @@ export default async function ProfilePage() {
   if (!user) {
     redirect("/login");
   }
-
-  // 角色中文映射
-  const roleLabel = {
-    USER: "注册用户",
-    AUTHOR: "作者",
-    ADMIN: "管理员",
-  }[user.role];
 
   // 头像首字母
   const displayName = user.name || user.username;
@@ -94,8 +83,6 @@ export default async function ProfilePage() {
   const stats = [
     { label: "文章", value: postCount, icon: FileText, href: `/u/${user.username}` },
     { label: "评论", value: commentCount, icon: MessageCircle },
-    { label: "点赞", value: likeCount, icon: Heart },
-    { label: "收藏", value: bookmarkCount, icon: Bookmark },
   ];
 
   return (
@@ -128,8 +115,8 @@ export default async function ProfilePage() {
                 {displayName}
               </h2>
               <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                {roleLabel}
-              </span>
+              {roleLabel(user.role)}
+            </span>
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               @{user.username}
@@ -162,7 +149,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* ==================== 统计数据 ==================== */}
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-2">
         {stats.map((stat) => {
           const Icon = stat.icon;
           const content = (

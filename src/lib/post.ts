@@ -151,8 +151,6 @@ export type PostDetail = Post & {
   tags: { tag: Pick<Tag, "id" | "name" | "slug"> }[];
   _count: {
     comments: number;
-    likes: number;
-    bookmarks: number;
   };
 };
 
@@ -172,8 +170,6 @@ export async function getPostBySlug(slug: string): Promise<PostDetail | null> {
       _count: {
         select: {
           comments: true,
-          likes: true,
-          bookmarks: true,
         },
       },
     },
@@ -259,26 +255,12 @@ export async function getRelatedPosts(
   return posts as PostWithRelations[];
 }
 
-/**
- * 增加文章阅读量
- * 用 increment 操作，避免读-改-写的并发问题
- *
- * 注意：SSG 页面中调用此函数需用 after() 或单独接口，不能直接在渲染时调用
- *       否则会导致缓存失效（每次渲染都 +1）
- */
-export async function incrementPostViews(postId: string): Promise<void> {
-  await prisma.post.update({
-    where: { id: postId },
-    data: { views: { increment: 1 } },
-  });
-}
-
 // ==================== 搜索相关 ====================
 
 // 搜索结果项类型（比列表项轻量，不含 tags，减少数据传输）
 export type SearchResultItem = Pick<
   Post,
-  "id" | "title" | "slug" | "excerpt" | "coverImage" | "readTime" | "publishedAt" | "views"
+  "id" | "title" | "slug" | "excerpt" | "coverImage" | "readTime" | "publishedAt"
 > & {
   author: Pick<User, "id" | "name" | "username">;
   category: Pick<Category, "id" | "name" | "slug">;
@@ -338,7 +320,6 @@ export async function searchPosts(
         coverImage: true,
         readTime: true,
         publishedAt: true,
-        views: true,
         author: { select: { id: true, name: true, username: true } },
         category: { select: { id: true, name: true, slug: true } },
       },
@@ -518,21 +499,19 @@ export async function getCommentById(
   });
 }
 
-// ==================== 作者后台相关 ====================
+// ==================== 用户后台相关 ====================
 
 /**
- * 作者管理后台用的文章列表类型
+ * 用户管理后台用的文章列表类型
  * 比公开列表多 content 摘要信息，但不需要完整内容
  */
 export type MyPostItem = Pick<
   Post,
-  "id" | "title" | "slug" | "excerpt" | "status" | "views" | "publishedAt" | "createdAt" | "updatedAt"
+  "id" | "title" | "slug" | "excerpt" | "status" | "publishedAt" | "createdAt" | "updatedAt"
 > & {
   category: Pick<Category, "id" | "name" | "slug">;
   _count: {
     comments: number;
-    likes: number;
-    bookmarks: number;
   };
 };
 
@@ -555,7 +534,6 @@ export async function getMyPosts(authorId: string): Promise<MyPostItem[]> {
       slug: true,
       excerpt: true,
       status: true,
-      views: true,
       publishedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -563,8 +541,6 @@ export async function getMyPosts(authorId: string): Promise<MyPostItem[]> {
       _count: {
         select: {
           comments: true,
-          likes: true,
-          bookmarks: true,
         },
       },
     },
@@ -572,6 +548,49 @@ export async function getMyPosts(authorId: string): Promise<MyPostItem[]> {
   });
 
   return posts as MyPostItem[];
+}
+
+/**
+ * 管理员后台用的文章列表类型
+ * 在 MyPostItem 基础上额外包含 author 字段，便于在表格里显示作者列
+ */
+export type AdminPostItem = MyPostItem & {
+  author: Pick<User, "id" | "name" | "username">;
+};
+
+/**
+ * 查询所有用户的全部文章（含草稿，用于 ADMIN 后台）
+ *
+ * 和 getMyPosts 的区别：
+ *   1. 不按 authorId 过滤（管理员要看所有用户的文章）
+ *   2. 额外 include author 字段（表格里要展示作者列）
+ *
+ * 权限说明：
+ *   本函数只负责查数据，不校验角色。调用方需确保 session.user.role === "ADMIN"。
+ */
+export async function getAllPostsForAdmin(): Promise<AdminPostItem[]> {
+  const posts = await prisma.post.findMany({
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      status: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      author: { select: { id: true, name: true, username: true } },
+      category: { select: { id: true, name: true, slug: true } },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return posts as AdminPostItem[];
 }
 
 /**
@@ -658,4 +677,32 @@ export function calculateReadTime(content: string): number {
   const charCount = content.length;
   const readTime = Math.ceil(charCount / 500);
   return Math.max(1, readTime); // 至少 1 分钟
+}
+
+// ==================== Sitemap / RSS 相关 ====================
+
+/**
+ * 查询所有已发布文章的轻量信息（用于 sitemap 和 RSS feed）
+ *
+ * 和 getAllPostSlugs 的区别：
+ *   → getAllPostSlugs 只返回 slug（给 generateStaticParams 用）
+ *   → 这个函数还返回 title/excerpt/publishedAt/author（给 RSS feed 用）
+ *
+ * 和 getLatestPosts 的区别：
+ *   → getLatestPosts 返回完整关联数据（含 category/tags），较重
+ *   → 这个函数只 select 必要字段，适合 sitemap/RSS 这种大数据量场景
+ */
+export async function getPublishedPostsForFeed() {
+  return prisma.post.findMany({
+    where: { status: "PUBLISHED" },
+    select: {
+      slug: true,
+      title: true,
+      excerpt: true,
+      publishedAt: true,
+      updatedAt: true,
+      author: { select: { name: true, username: true } },
+    },
+    orderBy: { publishedAt: "desc" },
+  });
 }

@@ -29,7 +29,6 @@ import { createCommentAction } from "@/actions/comment";
 interface CommentFormProps {
   postId: string;
   postSlug: string;
-  authorId: string;
   parentId?: string;
   isReply?: boolean;        // 是否回复模式（UI 更紧凑）
   onSubmitted?: () => void; // 回复模式提交后回调（关闭回复框）
@@ -39,7 +38,6 @@ interface CommentFormProps {
 export function CommentForm({
   postId,
   postSlug,
-  authorId,
   parentId,
   isReply = false,
   onSubmitted,
@@ -64,11 +62,11 @@ export function CommentForm({
     setError("");
 
     startTransition(async () => {
+      // authorId 不再传：Server Action 内部从 session 取
       const result = await createCommentAction(
         postId,
         postSlug,
         content,
-        authorId,
         parentId,
       );
 

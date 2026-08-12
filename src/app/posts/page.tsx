@@ -77,10 +77,12 @@ export default async function PostsPage({ searchParams }: PageProps) {
         </div>
 
         {/* 侧边栏：Suspense 流式渲染 */}
-        <div className="lg:sticky lg:top-20 lg:h-fit">
-          <Suspense fallback={<SidebarSkeleton />}>
-            <Sidebar />
-          </Suspense>
+        <div>
+          <div className="lg:sticky lg:top-6">
+            <Suspense fallback={<SidebarSkeleton />}>
+              <Sidebar />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>

@@ -24,7 +24,6 @@
 
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
@@ -96,7 +95,8 @@ export async function registerAction(
         email,
         username,
         passwordHash,
-        role: "USER",  // 默认普通用户
+        // 项目：注册即可发文（默认 USER 角色）
+        // role 字段使用 schema 默认值，不显式赋值
       },
     });
   } catch (error) {
@@ -143,7 +143,15 @@ export async function loginAction(
   } catch (error) {
     // NEXT_REDIRECT 是正常的 redirect 信号，必须重新抛出
     // 否则登录成功后不会跳转
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+    // 注意：Next.js 把 redirect 信息放在 error.digest 上（"NEXT_REDIRECT;push;..."），
+    //      error.message 并不是 "NEXT_REDIRECT"，所以必须用 digest 判断
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof (error as { digest: unknown }).digest === "string" &&
+      (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
       throw error;
     }
 

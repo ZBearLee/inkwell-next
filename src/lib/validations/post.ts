@@ -16,7 +16,7 @@ import { z } from "zod";
 
 // ==================== 文章状态 ====================
 // 和 Prisma schema 的 PostStatus 枚举对应
-// DRAFT：草稿，只有作者可见
+// DRAFT：草稿，只有作者本人可见
 // PUBLISHED：已发布，所有人可见
 export const postStatusSchema = z.enum(["DRAFT", "PUBLISHED"]);
 

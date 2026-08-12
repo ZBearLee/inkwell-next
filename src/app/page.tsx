@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, BookOpen, Rss } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { getLatestPosts } from "@/lib/post";
 import { PostCard } from "@/components/post-card";
 import { Sidebar, SidebarSkeleton } from "@/components/sidebar";
@@ -26,11 +26,11 @@ export default async function Home() {
     <>
       {/* ===== Hero 区 ===== */}
       <section className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto max-w-6xl px-4 py-20 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-5xl">
+        <div className="mx-auto max-w-6xl px-4 py-12 text-center sm:py-20">
+          <h1 className="mb-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl md:text-5xl">
             探索 <span className="text-blue-600">Next.js</span> 的全栈实践
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
+          <p className="mx-auto mb-8 max-w-2xl text-base text-zinc-600 dark:text-zinc-400 sm:text-lg">
             从 React Server Components 到 Server Actions，从 SSG 到 ISR ——
             一个用 Next.js 16 构建的技术博客 CMS，深度实践现代 Web 开发。
           </p>
@@ -41,13 +41,7 @@ export default async function Home() {
             >
               <BookOpen className="h-4 w-4" />
               浏览文章
-            </Link>
-            <Link
-              href="/rss"
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              <Rss className="h-4 w-4" />
-              RSS 订阅
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -58,21 +52,12 @@ export default async function Home() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
           {/* 最新文章列表 */}
           <div>
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">最新文章</h2>
-              <Link
-                href="/posts"
-                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-              >
-                查看全部
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+            <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-50">最新文章</h2>
 
             {posts.length > 0 ? (
               <div className="space-y-6">
-                {/* 第一篇用 featured 样式（大卡片） */}
-                {posts[0] && <PostCard post={posts[0]} featured />}
+                {/* 第一篇用 featured 样式（大卡片），priority 标记为 LCP 立即加载 */}
+                {posts[0] && <PostCard post={posts[0]} featured priority />}
                 {/* 其余用普通卡片，双列网格 */}
                 {posts.slice(1).length > 0 && (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -90,10 +75,12 @@ export default async function Home() {
           </div>
 
           {/* 侧边栏：用 Suspense 包裹，实现流式渲染 */}
-          <div className="lg:sticky lg:top-20 lg:h-fit">
-            <Suspense fallback={<SidebarSkeleton />}>
-              <Sidebar />
-            </Suspense>
+          <div>
+            <div className="lg:sticky lg:top-6">
+              <Suspense fallback={<SidebarSkeleton />}>
+                <Sidebar />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>

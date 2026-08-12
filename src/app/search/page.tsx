@@ -147,8 +147,6 @@ export default async function SearchPage({ searchParams }: PageProps) {
                   )}
                   <span>·</span>
                   <span>{post.readTime} 分钟阅读</span>
-                  <span>·</span>
-                  <span>{post.views} 次浏览</span>
                 </div>
               </Link>
             </article>

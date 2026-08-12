@@ -31,6 +31,8 @@ interface CommentItemProps {
   comment: CommentWithRelations;
   postId: string;
   postSlug: string;
+  // 以下两个字段仅用于 UI 决定是否显示按钮，不会传给 Server Action
+  // 真正的权限校验由 Server Action 内部 await auth() 完成
   currentUserId?: string;      // 当前登录用户 id（未登录则 undefined）
   isAdmin?: boolean;           // 是否管理员
   isReplyLevel?: boolean;      // 是否是子评论层级（控制是否显示"回复"按钮）
@@ -55,13 +57,14 @@ export function CommentItem({
   const handleDelete = () => {
     if (!confirm("确认删除这条评论？删除后不可恢复。")) return;
 
+    // 不再传 currentUserId / isAdmin：Server Action 内部从 session 取真实身份
     startTransition(async () => {
-      await deleteCommentAction(comment.id, postSlug, currentUserId!, isAdmin);
+      await deleteCommentAction(comment.id, postSlug);
     });
   };
 
   return (
-    <div className={isReplyLevel ? "ml-12" : ""}>
+    <div>
       <div className="flex gap-3">
         {/* 头像 */}
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
@@ -115,7 +118,6 @@ export function CommentItem({
               <CommentForm
                 postId={postId}
                 postSlug={postSlug}
-                authorId={currentUserId}
                 parentId={comment.id}
                 isReply
                 autoFocus
@@ -126,7 +128,7 @@ export function CommentItem({
 
           {/* 子评论（楼中楼）— 递归渲染 */}
           {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-4 space-y-4 border-l-2 border-zinc-100 pl-4 dark:border-zinc-800">
+            <div className="mt-4 space-y-4 border-zinc-100 dark:border-zinc-800">
               {comment.replies.map((reply) => (
                 <CommentItem
                   key={reply.id}
