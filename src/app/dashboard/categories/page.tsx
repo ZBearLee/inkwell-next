@@ -93,7 +93,7 @@ export default async function CategoriesPage() {
         <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-700">
           <Tag className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            还没有分类，点击"新建分类"开始创建
+            还没有分类，点击&ldquo;新建分类&rdquo;开始创建
           </p>
         </div>
       ) : (

@@ -51,6 +51,7 @@ let processor: any = null;
 function rehypeCopyButton() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (tree: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     visit(tree, "element", (node: any) => {
       if (node.tagName === "pre") {
         // 给 <pre> 加 position: relative（CSS 需要）

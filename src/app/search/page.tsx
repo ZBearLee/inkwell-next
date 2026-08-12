@@ -86,7 +86,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400">
           找到 <span className="font-semibold text-zinc-900 dark:text-zinc-50">{result.total}</span> 篇包含{" "}
-          <span className="font-semibold text-blue-600 dark:text-blue-400">"{q}"</span> 的文章
+          <span className="font-semibold text-blue-600 dark:text-blue-400">&ldquo;{q}&rdquo;</span> 的文章
         </p>
       </header>
 
