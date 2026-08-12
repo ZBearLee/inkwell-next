@@ -58,8 +58,8 @@ export default async function ImageOG({ params }: { params: { slug: string } }) 
             justifyContent: "center",
           }}
         >
-          <div style={{ fontSize: 48, fontWeight: 700 }}>Inkwell-next</div>
-          <div style={{ fontSize: 24, color: "#a1a1aa", marginTop: 16 }}>
+          <div style={{ display: "flex", fontSize: 48, fontWeight: 700 }}>Inkwell-next</div>
+          <div style={{ display: "flex", fontSize: 24, color: "#a1a1aa", marginTop: 16 }}>
             文章不存在
           </div>
         </div>
@@ -88,6 +88,7 @@ export default async function ImageOG({ params }: { params: { slug: string } }) 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div
             style={{
+              display: "flex",
               fontSize: 32,
               fontWeight: 700,
               color: "#3b82f6",
@@ -95,7 +96,7 @@ export default async function ImageOG({ params }: { params: { slug: string } }) 
           >
             Inkwell-next
           </div>
-          <div style={{ fontSize: 24, color: "#71717a" }}>技术博客 CMS</div>
+          <div style={{ display: "flex", fontSize: 24, color: "#71717a" }}>技术博客 CMS</div>
         </div>
 
         {/* 中间：文章标题 */}
@@ -121,9 +122,9 @@ export default async function ImageOG({ params }: { params: { slug: string } }) 
             color: "#a1a1aa",
           }}
         >
-          <div>作者：{author}</div>
-          <div>|</div>
-          <div>{post.category.name}</div>
+          <div style={{ display: "flex" }}>作者：{author}</div>
+          <div style={{ display: "flex" }}>|</div>
+          <div style={{ display: "flex" }}>{post.category.name}</div>
         </div>
       </div>
     ),
