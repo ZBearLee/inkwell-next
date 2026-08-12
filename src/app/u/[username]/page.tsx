@@ -33,7 +33,11 @@ export const revalidate = 60;
 // ==================== generateStaticParams ====================
 // 构建时预生成所有"有已发布文章"的用户主页
 // 没有文章的用户不预生成（运行时按需渲染）
+// CI 环境无数据库,返回空数组跳过预渲染
 export async function generateStaticParams() {
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+    return [];
+  }
   const users = await getAllUsernames();
   return users;
 }

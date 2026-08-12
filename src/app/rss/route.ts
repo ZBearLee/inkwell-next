@@ -49,6 +49,11 @@ function escapeXml(unsafe: string): string {
 }
 
 export async function GET() {
+  // CI 环境无数据库,返回空 RSS 避免构建失败
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+    return new Response("", { headers: { "Content-Type": "application/xml" } });
+  }
+
   const posts = await getPublishedPostsForFeed();
 
   // ==================== 生成 RSS XML ====================

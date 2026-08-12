@@ -29,6 +29,11 @@ import { getPublishedPostsForFeed } from "@/lib/post";
 const SITE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // CI 环境无数据库,返回空 sitemap 跳过构建时查询
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+    return [];
+  }
+
   // 并行查询所有动态路由的数据
   const [posts, categories, tags, users] = await Promise.all([
     getPublishedPostsForFeed(),

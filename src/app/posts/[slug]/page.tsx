@@ -45,6 +45,10 @@ export const revalidate = 60;
 // 2. 可部署到 CDN（Vercel Edge Network）
 // 3. SEO 友好（爬虫拿到完整 HTML）
 export async function generateStaticParams() {
+  // CI 环境无数据库,返回空数组跳过预渲染
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+    return [];
+  }
   const posts = await getAllPostSlugs();
   return posts.map((post) => ({
     slug: post.slug,
