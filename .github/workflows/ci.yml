@@ -74,6 +74,8 @@ jobs:
       #    这个产物是 prisma generate 生成的,不在 git 里,必须每次 CI 重新生成
       - name: Generate Prisma Client
         run: pnpm db:generate
+        env:
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
       # 6. TypeScript 类型检查
       #    --noEmit:只检查类型,不产出 .js 文件
